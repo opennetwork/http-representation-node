@@ -1,0 +1,32 @@
+{
+    "compilerOptions": {
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "lib": [
+            "es2018",
+            "dom"
+        ],
+        "types": [
+            "node"
+        ],
+        "target": "es5",
+        "noImplicitAny": true,
+        "downlevelIteration": true,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "outDir": "dist",
+        "baseUrl": ".",
+        "paths": {
+            "*": [
+                "node_modules/*",
+                "src/types/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "typeRoots": [
+        "./node_modules/@types"
+    ]
+}
