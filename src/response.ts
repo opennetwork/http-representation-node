@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { Response, asBestSuited, Headers } from "@opennetwork/http-representation";
+import { Response, asBuffer, Headers } from "@opennetwork/http-representation";
 import { getResponseHeaders, applyResponseHeaders } from "./headers";
 
 export function fromResponse(response: ServerResponse): Response {
@@ -38,36 +38,11 @@ export async function sendResponse(representation: Response, request: Request | 
   // If statusText is not a string here, the status value will be looked up against http.STATUS_CODES
   // This is why in http-representation we don't mind if you don't supply statusText, it will be resolved
   // when it is needed!
-  response.writeHead(representation.status, representation.statusText);
+  response.writeHead(representation.status, representation.statusText, undefined);
 
   if (!noBody && request.method !== "HEAD") {
-    // Content-Type would be applied from kind of body
-    const {
-      text,
-      blob,
-      formData,
-      arrayBuffer,
-      buffer,
-      readable
-    } = await asBestSuited(representation);
-    if (typeof text === "string" || buffer || arrayBuffer) {
-      await new Promise((resolve, reject) => response.write(typeof text === "string" ? text : (buffer || arrayBuffer), (error) => error ? reject(error) : resolve()));
-    } else if (blob || formData) {
-      // How did we get here? Node.js doesn't have blob support
-      throw new Error("Blob and FormData are not implemented for responses");
-    } else if (readable) {
-      readable.pipe(response, {
-        // We will end below
-        end: false
-      });
-      // Pass the error up, and also wait for the readable to finish before ending the response
-      const promise = new Promise((resolve, reject) => {
-        readable.once("error", reject);
-        readable.once("end", resolve);
-      });
-      readable.resume();
-      await promise;
-    }
+    const buffer = await asBuffer(representation);
+    response.write(buffer);
   }
 
   if (!response.finished) {
