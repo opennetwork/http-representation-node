@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { Response, asBestSuited } from "@opennetwork/http-representation";
+import { Response, asBestSuited, Headers } from "@opennetwork/http-representation";
 import { getResponseHeaders, applyResponseHeaders } from "./headers";
 
 export function fromResponse(response: ServerResponse): Response {
@@ -19,15 +19,30 @@ export async function sendResponse(representation: Response, request: Request | 
     // But it mimics the 100 stuff as far as I can tell, so should be fine
     // I guess it just opens the request!
     return new Promise(resolve => response.writeContinue(resolve));
-  } else if (representation.status === 204 || representation.status === 304) {
-    representation.headers.delete("");
-    representation.headers.delete("Content-Type");
-    representation.headers.delete("Content-Length");
-    representation.headers.delete("Transfer-Encoding");
-    applyResponseHeaders(response, representation.headers);
-  } else if (request.method !== "HEAD") {
+  }
+
+  // We are going to possibly modify these
+  const workingHeaders = new Headers(representation.headers);
+
+  const noBody = representation.status === 204 || representation.status === 304;
+
+  if (noBody) {
+    // Remove any headers that are disallowed!
+    workingHeaders.delete("");
+    workingHeaders.delete("Content-Type");
+    workingHeaders.delete("Content-Length");
+    workingHeaders.delete("Transfer-Encoding");
+  }
+
+  applyResponseHeaders(response, workingHeaders);
+
+  // If statusText is not a string here, the status value will be looked up against http.STATUS_CODES
+  // This is why in http-representation we don't mind if you don't supply statusText, it will be resolved
+  // when it is needed!
+  response.writeHead(representation.status, representation.statusText);
+
+  if (!noBody && request.method !== "HEAD") {
     // Content-Type would be applied from kind of body
-    applyResponseHeaders(response, representation.headers);
     const {
       text,
       blob,
@@ -46,12 +61,19 @@ export async function sendResponse(representation: Response, request: Request | 
         // We will end below
         end: false
       });
+      // Pass the error up, and also wait for the readable to finish before ending the response
+      const promise = new Promise((resolve, reject) => {
+        readable.once("error", reject);
+        readable.once("end", resolve);
+      });
       readable.resume();
+      await promise;
     }
-  } else {
-    applyResponseHeaders(response, representation.headers);
   }
 
-  response.writeHead(representation.status, representation.statusText);
-  await new Promise(resolve => response.end(resolve));
+  if (!response.finished) {
+    // Finish up our response if we need to
+    // It may have already been ended by a pipe
+    await new Promise(resolve => response.end(resolve));
+  }
 }
