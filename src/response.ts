@@ -28,7 +28,6 @@ export async function sendResponse(representation: Response, request: Request | 
 
   if (noBody) {
     // Remove any headers that are disallowed!
-    workingHeaders.delete("");
     workingHeaders.delete("Content-Type");
     workingHeaders.delete("Content-Length");
     workingHeaders.delete("Transfer-Encoding");
