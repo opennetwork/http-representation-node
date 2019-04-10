@@ -46,6 +46,7 @@ export async function sendResponse(representation: Response, request: Request | 
         // We will end below
         end: false
       });
+      readable.resume();
     }
   } else {
     applyResponseHeaders(response, representation.headers);
