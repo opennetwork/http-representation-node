@@ -17,14 +17,15 @@ const server = http.createServer((request, response) => {
   )
     .then(representation => sendResponse(representation, request, response))
     .catch(error => {
-      console.error(error);
+      console.error({ error });
       try {
         response.writeHead(500, {
           "Content-Type": "text/plain"
         });
         response.end(error.message);
       } catch(e) {
-
+        // Unsure what to do here, this would have only been if
+        // the head was already written
       }
     });
 });

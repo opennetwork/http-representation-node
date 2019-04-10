@@ -35,14 +35,21 @@ export async function sendResponse(representation: Response, request: Request | 
 
   applyResponseHeaders(response, workingHeaders);
 
+  const willWriteBody = !noBody && request.method !== "HEAD";
+
+  let body;
+
+  if (willWriteBody) {
+    body = await asBuffer(representation);
+  }
+
   // If statusText is not a string here, the status value will be looked up against http.STATUS_CODES
   // This is why in http-representation we don't mind if you don't supply statusText, it will be resolved
   // when it is needed!
   response.writeHead(representation.status, representation.statusText, undefined);
 
-  if (!noBody && request.method !== "HEAD") {
-    const buffer = await asBuffer(representation);
-    response.write(buffer);
+  if (willWriteBody) {
+    response.write(body);
   }
 
   if (!response.finished) {
