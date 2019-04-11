@@ -11,12 +11,15 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "@opennetwork/http-representation": "^1.0.13"
+    "@opennetwork/http-representation": "^2.0.0"
   },
   "devDependencies": {
-    "@opennetwork/http-representation": "^1.0.13",
-    "@opennetwork/http-store": "^1.0.7",
+    "@opennetwork/http-representation": "^2.0.1",
+    "@opennetwork/http-store": "^2.0.0",
     "@types/node": "^11.13.2",
+    "esm": "^3.2.22",
+    "fs-extra": "^7.0.1",
+    "rimraf": "^2.6.3",
     "tslint": "^5.14.0",
     "typescript": "^3.3.4000"
   },

@@ -1,12 +1,16 @@
-const { FSStore } = require('@opennetwork/http-store'),
-  { fromRequest, sendResponse } = require('../dist'),
-  http = require('http'),
-  fs = require('fs');
+import { FSStore } from "@opennetwork/http-store";
+import { fromRequest, sendResponse } from "../dist";
+import http from "http";
+import fs from "fs";
+import rimraf from "rimraf";
+import { mkdirp } from "fs-extra";
 
 const store = new FSStore({
   fs,
   rootPath: './examples/store',
-  statusCodes: http.STATUS_CODES
+  statusCodes: http.STATUS_CODES,
+  rimraf,
+  mkdirp
 });
 
 const port = 8080;
