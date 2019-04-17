@@ -48,7 +48,7 @@ export async function sendResponse(representation: Response, request: Request | 
   // when it is needed!
   response.writeHead(representation.status, representation.statusText, undefined);
 
-  if (willWriteBody) {
+  if (willWriteBody && body != undefined) {
     response.write(body);
   }
 
