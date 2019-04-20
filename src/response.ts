@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { Response, asReadable, Headers, asBuffer } from "@opennetwork/http-representation";
+import { Response, asReadable, Headers, asBuffer, ignoreBodyUsed } from "@opennetwork/http-representation";
 import { getResponseHeaders, applyResponseHeaders } from "./headers";
 import { Readable } from "stream";
 
@@ -38,6 +38,8 @@ export async function sendResponse(representation: Response, request: Request | 
   const willWriteBody = !noBody && request.method !== "HEAD";
 
   let body: Readable | Buffer;
+
+  ignoreBodyUsed(representation);
 
   if (willWriteBody) {
     body = await asReadable(representation)
