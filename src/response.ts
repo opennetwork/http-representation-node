@@ -49,6 +49,8 @@ export async function sendResponse(representation: Response, request: Request | 
 
   if (willWriteBody && body && (body as Buffer).length) {
     workingHeaders.set("Content-Length", (body as Buffer).length.toString());
+  } else if (willWriteBody && body && (body as Readable).readable) {
+    workingHeaders.set("Transfer-Encoding", "chunked");
   }
 
   applyResponseHeaders(response, workingHeaders);
@@ -59,16 +61,19 @@ export async function sendResponse(representation: Response, request: Request | 
   response.writeHead(representation.status, representation.statusText, undefined);
 
   if (willWriteBody && body != undefined) {
-    if ((body as Readable).readable) {
+    const readable = body as Readable;
+    if (readable.readable) {
       const promise = new Promise(
         (resolve, reject) => {
-          (body as Readable).on("error", reject);
-          (body as Readable).on("end", resolve);
+          readable.on("error", reject);
+          readable.on("end", resolve);
         }
       );
-      (body as Readable).pipe(response);
-      (body as Readable).resume();
+      readable.on("data", chunk => response.write(chunk));
+      // Wait for
       await promise;
+      // EOF, zero length chunk
+      response.write(Buffer.from([]));
     } else {
       response.write(body as Buffer);
     }
