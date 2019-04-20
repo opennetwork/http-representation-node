@@ -1,6 +1,7 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { Response, asBuffer, Headers } from "@opennetwork/http-representation";
+import { Response, asReadable, Headers, asBuffer } from "@opennetwork/http-representation";
 import { getResponseHeaders, applyResponseHeaders } from "./headers";
+import { Readable } from "stream";
 
 export function fromResponse(response: ServerResponse): Response {
   // At this point, we know nothing, so don't provide status
@@ -33,15 +34,22 @@ export async function sendResponse(representation: Response, request: Request | 
     workingHeaders.delete("Transfer-Encoding");
   }
 
-  applyResponseHeaders(response, workingHeaders);
 
   const willWriteBody = !noBody && request.method !== "HEAD";
 
-  let body;
+  let body: Readable | Buffer;
 
   if (willWriteBody) {
-    body = await asBuffer(representation);
+    body = await asReadable(representation)
+      // If we couldn't read as a readable
+      .catch(() => asBuffer(representation));
   }
+
+  if (willWriteBody && (body as Buffer).length) {
+    workingHeaders.set("Content-Length", (body as Buffer).length.toString());
+  }
+
+  applyResponseHeaders(response, workingHeaders);
 
   // If statusText is not a string here, the status value will be looked up against http.STATUS_CODES
   // This is why in http-representation we don't mind if you don't supply statusText, it will be resolved
@@ -49,7 +57,19 @@ export async function sendResponse(representation: Response, request: Request | 
   response.writeHead(representation.status, representation.statusText, undefined);
 
   if (willWriteBody && body != undefined) {
-    response.write(body);
+    if ((body as Readable).readable) {
+      const promise = new Promise(
+        (resolve, reject) => {
+          (body as Readable).on("error", reject);
+          (body as Readable).on("end", resolve);
+        }
+      );
+      (body as Readable).pipe(response);
+      (body as Readable).resume();
+      await promise;
+    } else {
+      response.write(body as Buffer);
+    }
   }
 
   if (!response.finished) {
