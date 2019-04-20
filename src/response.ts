@@ -50,7 +50,14 @@ export async function sendResponse(representation: Response, request: Request | 
   if (willWriteBody && body && (body as Buffer).length) {
     workingHeaders.set("Content-Length", (body as Buffer).length.toString());
   } else if (willWriteBody && body && (body as Readable).readable) {
-    workingHeaders.set("Transfer-Encoding", "chunked");
+    const contentEncoding = workingHeaders.get("Content-Encoding");
+    const transferEncoding = ["chunked"];
+    if (contentEncoding) {
+      transferEncoding.unshift(contentEncoding);
+    }
+    workingHeaders.delete("Content-Length");
+    workingHeaders.delete("Content-Encoding");
+    workingHeaders.set("Transfer-Encoding", transferEncoding.join(", "));
   }
 
   applyResponseHeaders(response, workingHeaders);
