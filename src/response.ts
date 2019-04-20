@@ -47,7 +47,7 @@ export async function sendResponse(representation: Response, request: Request | 
       .catch(() => asBuffer(representation));
   }
 
-  if (willWriteBody && (body as Buffer).length) {
+  if (willWriteBody && body && (body as Buffer).length) {
     workingHeaders.set("Content-Length", (body as Buffer).length.toString());
   }
 
